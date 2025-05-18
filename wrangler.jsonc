@@ -4,13 +4,13 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "srbcodes",
+	"name": "kaironet",
 	"main": "src/index.js",
 	"compatibility_date": "2025-05-17",
 	"migrations": [
 		{
 			"new_sqlite_classes": [
-				"MyDurableObject"
+				"Kairo"
 			],
 			"tag": "v1"
 		}
@@ -18,8 +18,8 @@
 	"durable_objects": {
 		"bindings": [
 			{
-				"class_name": "MyDurableObject",
-				"name": "MY_DURABLE_OBJECT"
+				"class_name": "Kairo",
+				"name": "KAIRO"
 			}
 		]
 	},
