@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kairo Chat</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    #messages {
+      height: 300px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+      padding: 10px;
+      overflow-y: auto;
+    }
+    #message-form {
+      display: flex;
+      margin-bottom: 20px;
+    }
+    #message-input {
+      flex-grow: 1;
+      padding: 8px;
+      margin-right: 10px;
+    }
+    .system-message {
+      color: #666;
+      font-style: italic;
+      padding: 4px 8px;
+      margin: 4px 0;
+      border-radius: 4px;
+      background-color: #f8f9fa;
+    }
+    .system-message[data-join="true"] {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .system-message[data-leave="true"] {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .chat-message {
+      margin-bottom: 5px;
+    }
+    .chat-name {
+      font-weight: bold;
+    }
+    .chat-timestamp {
+      font-size: 0.75em;
+      color: #6c757d;
+      margin-left: 8px;
+    }
+    .chat-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 3px;
+    }
+    .chat-header-spacer {
+      flex-grow: 1;
+    }
+    .error-message {
+      color: red;
+    }
+    .connection-status {
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 14px;
+      margin-bottom: 10px;
+      display: inline-block;
+    }
+    .connected {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .disconnected {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .room-list {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0;
+    }
+    .room-item {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      padding: 15px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .room-item:hover {
+      background-color: #f8f9fa;
+    }
+    .room-name {
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .room-connections {
+      background-color: #e9ecef;
+      border-radius: 10px;
+      padding: 3px 8px;
+      font-size: 14px;
+    }
+    .page {
+      display: none;
+    }
+    .page.active {
+      display: block;
+    }
+    .back-button {
+      margin-bottom: 20px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    .name-input-container {
+      margin: 20px 0;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .name-input-container input {
+      padding: 8px;
+      width: 100%;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+    .name-input-container button {
+      padding: 8px 16px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .room-header {
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .active-users {
+      background-color: #e9ecef;
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 14px;
+      display: inline-block;
+    }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      font-size: 14px;
+    }
+    .btn:hover {
+      background-color: #0069d9;
+    }
+    .btn:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+    .history-divider {
+      text-align: center;
+      margin: 15px 0;
+      border-bottom: 1px solid #dee2e6;
+      line-height: 0.1em;
+    }
+    .history-divider span {
+      background: #fff;
+      padding: 0 10px;
+      color: #6c757d;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Home page with room list -->
+  <div id="home-page" class="page active">
+    <div class="header">
+      <h1>Kairo Chat Room </h1>
+      <button id="refresh-rooms-btn" class="btn">Refresh Rooms</button>
+    </div>
+    
+    <p>Select a room to join:</p>
+    
+    <ul id="room-list" class="room-list">
+      <li class="room-item">
+        <span class="room-name">Loading rooms...</span>
+      </li>
+    </ul>
+  </div>
+  
+  <!-- Name input page -->
+  <div id="name-page" class="page">
+    <button class="back-button btn" onclick="showPage('home-page')">← Back to Rooms</button>
+    
+    <h2>Join <span id="selected-room-name">Chat Room</span></h2>
+    
+    <div class="name-input-container">
+      <p>Please enter your name to join the chat:</p>
+      <input type="text" id="join-name-input" placeholder="Your name" maxlength="32">
+      <button id="join-room-btn" class="btn">Join Chat</button>
+    </div>
+  </div>
+  
+  <!-- Chat room page -->
+  <div id="chat-page" class="page">
+    <button class="back-button btn" onclick="leaveRoom()">← Leave Room</button>
+    
+    <div class="room-header">
+      <h2 id="room-title">Chat Room</h2>
+      <div>
+        <span id="active-users" class="active-users">Active Users: 0</span>
+        <span id="status" class="connection-status connected">Connected</span>
+      </div>
+    </div>
+    
+    <div id="messages"></div>
+    
+    <form id="message-form">
+      <input type="text" id="message-input" placeholder="Type a message..." maxlength="256">
+      <button type="submit" id="send-btn" class="btn">Send</button>
+    </form>
+  </div>
+
+  <script >
+    // DOM elements - Home page
+      const homePage = document.getElementById('home-page');
+      const roomList = document.getElementById('room-list');
+      const refreshRoomsBtn = document.getElementById('refresh-rooms-btn');
+
+      // DOM elements - Name page
+      const namePage = document.getElementById('name-page');
+      const selectedRoomName = document.getElementById('selected-room-name');
+      const joinNameInput = document.getElementById('join-name-input');
+      const joinRoomBtn = document.getElementById('join-room-btn');
+
+      // DOM elements - Chat page
+      const chatPage = document.getElementById('chat-page');
+      const roomTitle = document.getElementById('room-title');
+      const messagesDiv = document.getElementById('messages');
+      const messageForm = document.getElementById('message-form');
+      const messageInput = document.getElementById('message-input');
+      const sendBtn = document.getElementById('send-btn');
+      const statusDiv = document.getElementById('status');
+      const activeUsersLabel = document.getElementById('active-users');
+
+      // State variables
+      let socket = null;
+      let currentRoomId = null;
+      let currentRoomName = '';
+      let userName = '';
+      let activeUsers = 0;
+      let historyReceived = false;
+      let messagesSent = 0;
+
+      // Show a specific page
+      function showPage(pageId) {
+        document.querySelectorAll('.page').forEach((page) => {
+          page.classList.remove('active');
+        });
+        document.getElementById(pageId).classList.add('active');
+      }
+
+      // Load the list of rooms
+      async function loadRooms() {
+        try {
+          const response = await fetch('/api/room');
+          if (!response.ok) {
+            throw new Error('Failed to load rooms');
+          }
+
+          const rooms = await response.json();
+          displayRooms(rooms);
+        } catch (error) {
+          roomList.innerHTML = `
+      <li class="room-item">
+        <span class="room-name">Error loading rooms</span>
+      </li>
+    `;
+        }
+      }
+
+      // Display the list of rooms
+      function displayRooms(rooms) {
+        if (!rooms.length) {
+          roomList.innerHTML = `
+      <li class="room-item">
+        <span class="room-name">No rooms available</span>
+      </li>
+    `;
+          return;
+        }
+
+        roomList.innerHTML = rooms
+          .map(
+            (room) => `
+    <li class="room-item" onclick="selectRoom('${room.id}', '${room.name}')">
+      <span class="room-name">${room.name}</span>
+      <span class="room-connections">${room.users} online</span>
+    </li>
+  `
+          )
+          .join('');
+      }
+
+      // Select a room to join
+      function selectRoom(roomId, roomName) {
+        currentRoomId = roomId;
+        currentRoomName = roomName;
+        selectedRoomName.textContent = roomName;
+        showPage('name-page');
+      }
+
+      // Join the selected room
+      function joinRoom() {
+        userName = joinNameInput.value.trim();
+
+        if (!userName) {
+          alert('Please enter your name');
+          return;
+        }
+
+        if (userName.length > 32) {
+          alert('Name too long (max 32 characters)');
+          return;
+        }
+
+        if (!currentRoomId) {
+          alert('No room selected');
+          return;
+        }
+
+        showPage('chat-page');
+        roomTitle.textContent = currentRoomName;
+
+        // Reset history flag when joining a new room
+        historyReceived = false;
+
+        // Clear messages
+        messagesDiv.innerHTML = '';
+
+        connect();
+      }
+
+      // Leave the current room
+      function leaveRoom() {
+        if (socket) {
+          socket.close();
+        }
+
+        // Clear messages
+        messagesDiv.innerHTML = '';
+
+        // Reset active users
+        updateActiveUsers(0);
+
+        // Go back to home page
+        showPage('home-page');
+        loadRooms();
+      }
+
+      // Update active users count
+      function updateActiveUsers(count) {
+        activeUsers = count;
+        activeUsersLabel.textContent = `Active Users: ${count}`;
+      }
+
+      // Connect to WebSocket for the selected room
+      function connect() {
+        // Get the current host and use it to build the WebSocket URL
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/api/room/${currentRoomId}/websocket`;
+
+        socket = new WebSocket(wsUrl);
+
+        // Connection opened
+        socket.addEventListener('open', (event) => {
+          updateStatus('Connected', true);
+          // Set the user name immediately after connecting
+          setName(userName);
+        });
+
+        // Listen for messages
+        socket.addEventListener('message', (event) => {
+          try {
+            const data = JSON.parse(event.data);
+
+            if (data.error) {
+              // Handle errors
+              addMessage(data.error, 'error');
+            } else if (data.ready) {
+              // Server acknowledged our name, we're ready to chat
+              addMessage(`Welcome to ${currentRoomName}!`, 'system');
+            } else if (data.joined) {
+              // User joined notification
+              const joinedName = data.joined;
+              addMessage(`${joinedName} has joined the chat`, 'system', true);
+              countActiveUsers();
+            } else if (data.quit) {
+              // User left notification
+              const leftName = data.quit;
+              addMessage(`${leftName} has left the chat`, 'system', false, true);
+              countActiveUsers();
+            } else if (data.name && data.message && data.timestamp) {
+              // Regular chat message
+              if (!historyReceived) {
+                // Mark that we've received a chat message, so any future backlog is history
+                historyReceived = true;
+                addHistoryDivider();
+              }
+              addChatMessage(data.name, data.message, data.timestamp);
+            }
+          } catch (error) {
+            addMessage('Error parsing message from server', 'error');
+          }
+        });
+
+        // Connection closed
+        socket.addEventListener('close', (event) => {
+          updateStatus('Disconnected', false);
+          addMessage('Disconnected from server', 'system');
+        });
+
+        // Connection error
+        socket.addEventListener('error', (event) => {
+          updateStatus('Connection Error', false);
+          addMessage('WebSocket connection error', 'error');
+        });
+      }
+
+      // Estimate the number of active users based on join/quit messages
+      function countActiveUsers() {
+        // Get all system messages
+        const joinMessages = document.querySelectorAll('.system-message[data-join="true"]');
+        const leaveMessages = document.querySelectorAll('.system-message[data-leave="true"]');
+
+        // Count joins and leaves
+        const joins = joinMessages.length;
+        const leaves = leaveMessages.length;
+
+        // Update active users count (including ourselves)
+        updateActiveUsers(joins - leaves);
+      }
+
+      // Add a history divider to separate previous messages from new ones
+      function addHistoryDivider() {
+        const divider = document.createElement('div');
+        divider.className = 'history-divider';
+        divider.innerHTML = '<span>New Messages</span>';
+        messagesDiv.appendChild(divider);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+
+      // Send a message
+      function sendMessage(message) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          if (message.length > 256) {
+            addMessage('Message too long (max 256 characters)', 'error');
+            return false;
+          }
+
+          socket.send(
+            JSON.stringify({
+              message: message,
+            })
+          );
+          return true;
+        }
+        return false;
+      }
+
+      // Set user name
+      function setName(name) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(
+            JSON.stringify({
+              name: name,
+            })
+          );
+          return true;
+        }
+        return false;
+      }
+
+      // Format a timestamp
+      function formatTimestamp(timestamp) {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+
+      // Add a message to the messages div
+      function addMessage(message, type, isJoin, isLeave) {
+        const messageElement = document.createElement('div');
+        messageElement.textContent = message;
+        messageElement.className = `${type}-message`;
+
+        // Add special styling for join/leave messages
+        if (type === 'system') {
+          if (isJoin) {
+            messageElement.dataset.join = 'true';
+          } else if (isLeave) {
+            messageElement.dataset.leave = 'true';
+          }
+        }
+
+        messagesDiv.appendChild(messageElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+
+      // Add a chat message
+      function addChatMessage(name, message, timestamp) {
+        const messageElement = document.createElement('div');
+        messageElement.className = 'chat-message';
+
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'chat-header';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = name;
+        nameSpan.className = 'chat-name';
+
+        const spacer = document.createElement('span');
+        spacer.className = 'chat-header-spacer';
+
+        const timeSpan = document.createElement('span');
+        timeSpan.textContent = formatTimestamp(timestamp);
+        timeSpan.className = 'chat-timestamp';
+
+        headerDiv.appendChild(nameSpan);
+        headerDiv.appendChild(spacer);
+        headerDiv.appendChild(timeSpan);
+
+        const messageContent = document.createElement('div');
+        messageContent.textContent = message;
+
+        messageElement.appendChild(headerDiv);
+        messageElement.appendChild(messageContent);
+
+        messagesDiv.appendChild(messageElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+
+      // Update connection status
+      function updateStatus(text, isConnected) {
+        statusDiv.textContent = text;
+        statusDiv.className = `connection-status ${isConnected ? 'connected' : 'disconnected'}`;
+      }
+
+      // Event listeners
+      refreshRoomsBtn.addEventListener('click', loadRooms);
+
+      joinRoomBtn.addEventListener('click', joinRoom);
+
+      messageForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const message = messageInput.value.trim();
+        if (message) {
+          if (sendMessage(message)) {
+            messageInput.value = '';
+          }
+        }
+      });
+
+      // Load rooms when the page loads
+      window.addEventListener('load', loadRooms);
+
+  </script>
+</body>
+</html> 
