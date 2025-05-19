@@ -10,7 +10,7 @@
 	"migrations": [
 		{
 			"new_sqlite_classes": [
-				"Kairo"
+				"ChatRoom"
 			],
 			"tag": "v1"
 		}
@@ -18,8 +18,12 @@
 	"durable_objects": {
 		"bindings": [
 			{
-				"class_name": "Kairo",
-				"name": "KAIRO"
+				"class_name": "ChatRoom",
+				"name": "CHAT_ROOMS"
+			},
+			{
+				"class_name": "RateLimiter",
+				"name": "RATE_LIMITERS"
 			}
 		]
 	},
